@@ -5,6 +5,7 @@
 #![allow(unused_imports)]
 
 mod client;
+mod clusters;
 mod common;
 mod error;
 mod feature;
@@ -18,9 +19,10 @@ mod system_proc_stats;
 mod vhost;
 
 pub use client::Client;
+pub use clusters::Clusters;
 pub use common::{Hls, Kbps, Publish};
 pub use error::SrsClientError;
-pub use response::{SrsClientResp, SrsClientRespData};
+pub use response::{EmptyData, SrsClientResp, SrsClientRespData};
 pub use stream::{Audio, Stream, Video};
 pub use summary::{Summary, Tests, Urls};
 pub use vhost::Vhost;
@@ -51,7 +53,7 @@ fn empty_success_response(code: i64) -> SrsClientResp {
         server: String::new(),
         service: String::new(),
         pid: String::new(),
-        data: SrsClientRespData::Empty,
+        data: SrsClientRespData::Empty(EmptyData {}),
     }
 }
 
@@ -126,13 +128,10 @@ impl SrsClient {
         }
 
         if let Ok(response) = serde_json::from_str::<SrsClientResp>(&text) {
-            return if matches!(response.data, SrsClientRespData::Empty) {
-                serde_json::from_str::<SrsClientEmptyResp>(&text)
-                    .map(|response| empty_success_response(response.code))
-                    .map_err(SrsClientError::JsonDeserializeError)
-            } else {
-                Ok(response)
-            };
+            if matches!(response.data, SrsClientRespData::Empty(_)) {
+                return Ok(response);
+            }
+            return Ok(response);
         }
 
         serde_json::from_str::<SrsClientEmptyResp>(&text)
@@ -188,8 +187,33 @@ impl SrsClient {
     pub async fn get_summary(self) -> Result<Option<Summary>, SrsClientError> {
         let response = self.get_summaries().await?;
         match response.data {
-            SrsClientRespData::Summary(summary) => Ok(Some(summary)),
+            SrsClientRespData::Summaries { data: summary } => Ok(Some(summary)),
             _ => Err(SrsClientError::UnexpectedResponse("summary")),
+        }
+    }
+
+    /// Retrieves cluster-related information.
+    ///
+    /// # Errors
+    ///
+    /// If API request cannot be performed, or fails. See [`SrsClientError`](enum@SrsClientError)
+    /// for details.
+    pub async fn get_clusters(self) -> Result<SrsClientResp, SrsClientError> {
+        let resp = self.get("clusters").await?;
+        self.process_resp(resp).await
+    }
+
+    /// Retrieves the cluster information as typed summary data.
+    ///
+    /// # Errors
+    ///
+    /// If API request cannot be performed, or fails. See [`SrsClientError`](enum@SrsClientError)
+    /// for details.
+    pub async fn get_clusters_summary(self) -> Result<Option<Clusters>, SrsClientError> {
+        let response = self.get_clusters().await?;
+        match response.data {
+            SrsClientRespData::Clusters { data: clusters } => Ok(Some(clusters)),
+            _ => Err(SrsClientError::UnexpectedResponse("clusters")),
         }
     }
 
@@ -243,6 +267,106 @@ impl SrsClient {
         }
     }
 
+    /// Retrieves API-level docs for SRS HTTP API.
+    ///
+    /// # Errors
+    ///
+    /// If API request cannot be performed, or fails. See [`SrsClientError`](enum@SrsClientError)
+    /// for details.
+    pub async fn get_api(self) -> Result<SrsClientResp, SrsClientError> {
+        let resp = self.get("api").await?;
+        self.process_resp(resp).await
+    }
+
+    /// Retrieves API-level docs as typed summary data.
+    ///
+    /// # Errors
+    ///
+    /// If API request cannot be performed, or fails. See [`SrsClientError`](enum@SrsClientError)
+    /// for details.
+    pub async fn get_api_summary(self) -> Result<Option<Summary>, SrsClientError> {
+        let response = self.get_api().await?;
+        match response.data {
+            SrsClientRespData::Summary(summary) => Ok(Some(summary)),
+            _ => Err(SrsClientError::UnexpectedResponse("api summary")),
+        }
+    }
+
+    /// Retrieves performance endpoint summary data.
+    ///
+    /// # Errors
+    ///
+    /// If API request cannot be performed, or fails. See [`SrsClientError`](enum@SrsClientError)
+    /// for details.
+    pub async fn get_perf(self) -> Result<SrsClientResp, SrsClientError> {
+        let resp = self.get("perf").await?;
+        self.process_resp(resp).await
+    }
+
+    /// Retrieves performance data as typed summary data.
+    ///
+    /// # Errors
+    ///
+    /// If API request cannot be performed, or fails. See [`SrsClientError`](enum@SrsClientError)
+    /// for details.
+    pub async fn get_perf_summary(self) -> Result<Option<Summary>, SrsClientError> {
+        let response = self.get_perf().await?;
+        match response.data {
+            SrsClientRespData::Summary(summary) => Ok(Some(summary)),
+            _ => Err(SrsClientError::UnexpectedResponse("perf summary")),
+        }
+    }
+
+    /// Retrieves tcmalloc endpoint summary data.
+    ///
+    /// # Errors
+    ///
+    /// If API request cannot be performed, or fails. See [`SrsClientError`](enum@SrsClientError)
+    /// for details.
+    pub async fn get_tcmalloc(self) -> Result<SrsClientResp, SrsClientError> {
+        let resp = self.get("tcmalloc").await?;
+        self.process_resp(resp).await
+    }
+
+    /// Retrieves tcmalloc data as typed summary data.
+    ///
+    /// # Errors
+    ///
+    /// If API request cannot be performed, or fails. See [`SrsClientError`](enum@SrsClientError)
+    /// for details.
+    pub async fn get_tcmalloc_summary(self) -> Result<Option<Summary>, SrsClientError> {
+        let response = self.get_tcmalloc().await?;
+        match response.data {
+            SrsClientRespData::Summary(summary) => Ok(Some(summary)),
+            _ => Err(SrsClientError::UnexpectedResponse("tcmalloc summary")),
+        }
+    }
+
+    /// Retrieves dvr endpoint summary data.
+    ///
+    /// # Errors
+    ///
+    /// If API request cannot be performed, or fails. See [`SrsClientError`](enum@SrsClientError)
+    /// for details.
+    pub async fn get_dvr(self) -> Result<SrsClientResp, SrsClientError> {
+        let resp = self.get("dvr").await?;
+        self.process_resp(resp).await
+    }
+
+    /// Retrieves DVR data as typed summary data.
+    ///
+    /// # Errors
+    ///
+    /// If API request cannot be performed, or fails. See [`SrsClientError`](enum@SrsClientError)
+    /// for details.
+    pub async fn get_dvr_summary(self) -> Result<Option<Summary>, SrsClientError> {
+        let response = self.get_dvr().await?;
+        match response.data {
+            SrsClientRespData::Summary(summary) => Ok(Some(summary)),
+            _ => Err(SrsClientError::UnexpectedResponse("dvr summary")),
+        }
+    }
+
     /// Manages all vhosts or a specified vhost.
     ///
     /// # Errors
@@ -292,6 +416,7 @@ impl SrsClient {
         let response = self.get_vhost(id).await?;
         match response.data {
             SrsClientRespData::Vhost { vhost } => Ok(Some(vhost)),
+            SrsClientRespData::Empty(_) => Ok(None),
             _ => Err(SrsClientError::UnexpectedResponse("vhost")),
         }
     }
@@ -380,6 +505,7 @@ impl SrsClient {
         let response = self.get_stream(id).await?;
         match response.data {
             SrsClientRespData::Stream { stream } => Ok(Some(stream)),
+            SrsClientRespData::Empty(_) => Ok(None),
             _ => Err(SrsClientError::UnexpectedResponse("stream")),
         }
     }
@@ -468,6 +594,7 @@ impl SrsClient {
         let response = self.get_client(id).await?;
         match response.data {
             SrsClientRespData::Client { client } => Ok(Some(client)),
+            SrsClientRespData::Empty(_) => Ok(None),
             _ => Err(SrsClientError::UnexpectedResponse("client")),
         }
     }

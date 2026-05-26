@@ -1,10 +1,15 @@
-use srs_client::{SrsClient, SrsClientError, SrsClientResp, SrsClientRespData};
+use srs_client::{SrsClient, SrsClientError, SrsClientResp, SrsClientRespData, Summary};
 use std::env;
 use tokio;
 use tokio::{
     io::{AsyncReadExt as _, AsyncWriteExt as _},
     net::TcpListener,
 };
+
+fn assert_summary_index(summary: &Summary) {
+    assert!(summary.urls.is_some());
+    assert!(summary.tests.is_some());
+}
 
 // #[tokio::test]
 // async fn test_kickoff_client() -> Result<(), Box<dyn std::error::Error>> {
@@ -41,7 +46,7 @@ async fn test_kickoff_client_accepts_minimal_success_response(
     server.await?;
 
     assert_eq!(response.code, 0);
-    assert!(matches!(response.data, SrsClientRespData::Empty));
+    assert!(matches!(response.data, SrsClientRespData::Empty(_)));
     Ok(())
 }
 
@@ -157,6 +162,195 @@ async fn test_get_meminfos() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[tokio::test]
+async fn test_get_summaries() -> Result<(), Box<dyn std::error::Error>> {
+    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
+    let client = SrsClient::build(&srs_http_api_url)?;
+    let response = client.get_summaries().await?;
+    match response.data {
+        SrsClientRespData::Summaries { data: summary } => {
+            assert!(summary.ok.is_some());
+            assert!(summary.now_ms.is_some());
+            assert!(summary.self_.is_some());
+            assert!(summary.system.is_some());
+        }
+        _ => panic!("expected runtime summaries response"),
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_summary() -> Result<(), Box<dyn std::error::Error>> {
+    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
+    let client = SrsClient::build(&srs_http_api_url)?;
+    let summary = client.get_summary().await?.expect("summary");
+    assert!(summary.ok.is_some());
+    assert!(summary.now_ms.is_some());
+    assert!(summary.self_.is_some());
+    assert!(summary.system.is_some());
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_clusters() -> Result<(), Box<dyn std::error::Error>> {
+    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
+    let client = SrsClient::build(&srs_http_api_url)?;
+    let response = client.get_clusters().await?;
+    assert!(matches!(response.data, SrsClientRespData::Clusters { .. }));
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_clusters_summary() -> Result<(), Box<dyn std::error::Error>> {
+    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
+    let client = SrsClient::build(&srs_http_api_url)?;
+    let clusters = client
+        .get_clusters_summary()
+        .await?
+        .expect("clusters summary");
+    let query = clusters.query.expect("clusters query");
+    assert_eq!(query.ip, "");
+    assert_eq!(query.vhost, "");
+    assert_eq!(query.app, "");
+    assert_eq!(query.stream, "");
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_requests() -> Result<(), Box<dyn std::error::Error>> {
+    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
+    let client = SrsClient::build(&srs_http_api_url)?;
+    let response = client.get_requests().await?;
+    match response.data {
+        SrsClientRespData::Summary(summary) => assert_summary_index(&summary),
+        _ => panic!("expected requests summary response"),
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_requests_summary() -> Result<(), Box<dyn std::error::Error>> {
+    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
+    let client = SrsClient::build(&srs_http_api_url)?;
+    let summary = client
+        .get_requests_summary()
+        .await?
+        .expect("requests summary");
+    assert_summary_index(&summary);
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_configs() -> Result<(), Box<dyn std::error::Error>> {
+    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
+    let client = SrsClient::build(&srs_http_api_url)?;
+    let response = client.get_configs().await?;
+    match response.data {
+        SrsClientRespData::Summary(summary) => assert_summary_index(&summary),
+        _ => panic!("expected configs summary response"),
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_configs_summary() -> Result<(), Box<dyn std::error::Error>> {
+    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
+    let client = SrsClient::build(&srs_http_api_url)?;
+    let summary = client
+        .get_configs_summary()
+        .await?
+        .expect("configs summary");
+    assert_summary_index(&summary);
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_api() -> Result<(), Box<dyn std::error::Error>> {
+    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
+    let client = SrsClient::build(&srs_http_api_url)?;
+    let response = client.get_api().await?;
+    match response.data {
+        SrsClientRespData::Summary(summary) => assert_summary_index(&summary),
+        _ => panic!("expected api summary response"),
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_api_summary() -> Result<(), Box<dyn std::error::Error>> {
+    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
+    let client = SrsClient::build(&srs_http_api_url)?;
+    let summary = client.get_api_summary().await?.expect("api summary");
+    assert_summary_index(&summary);
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_perf() -> Result<(), Box<dyn std::error::Error>> {
+    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
+    let client = SrsClient::build(&srs_http_api_url)?;
+    let response = client.get_perf().await?;
+    match response.data {
+        SrsClientRespData::Summary(summary) => assert_summary_index(&summary),
+        _ => panic!("expected perf summary response"),
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_perf_summary() -> Result<(), Box<dyn std::error::Error>> {
+    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
+    let client = SrsClient::build(&srs_http_api_url)?;
+    let summary = client.get_perf_summary().await?.expect("perf summary");
+    assert_summary_index(&summary);
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_tcmalloc() -> Result<(), Box<dyn std::error::Error>> {
+    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
+    let client = SrsClient::build(&srs_http_api_url)?;
+    let response = client.get_tcmalloc().await?;
+    match response.data {
+        SrsClientRespData::Summary(summary) => assert_summary_index(&summary),
+        _ => panic!("expected tcmalloc summary response"),
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_tcmalloc_summary() -> Result<(), Box<dyn std::error::Error>> {
+    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
+    let client = SrsClient::build(&srs_http_api_url)?;
+    let summary = client
+        .get_tcmalloc_summary()
+        .await?
+        .expect("tcmalloc summary");
+    assert_summary_index(&summary);
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_dvr() -> Result<(), Box<dyn std::error::Error>> {
+    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
+    let client = SrsClient::build(&srs_http_api_url)?;
+    let response = client.get_dvr().await?;
+    match response.data {
+        SrsClientRespData::Summary(summary) => assert_summary_index(&summary),
+        _ => panic!("expected dvr summary response"),
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_dvr_summary() -> Result<(), Box<dyn std::error::Error>> {
+    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
+    let client = SrsClient::build(&srs_http_api_url)?;
+    let summary = client.get_dvr_summary().await?.expect("dvr summary");
+    assert_summary_index(&summary);
+    Ok(())
+}
+
 #[test]
 fn test_active_stream_response_with_media_metadata() -> Result<(), Box<dyn std::error::Error>> {
     let response: SrsClientResp = serde_json::from_str(include_str!("fixtures/srs-streams.json"))?;
@@ -238,10 +432,13 @@ fn test_summary_response() -> Result<(), Box<dyn std::error::Error>> {
     match response.data {
         SrsClientRespData::Summary(summary) => {
             assert_eq!(
-                summary.urls.streams,
+                summary.urls.as_ref().expect("summary urls").streams,
                 "manage all streams or specified stream"
             );
-            assert_eq!(summary.tests.requests, "ok");
+            assert_eq!(
+                summary.tests.as_ref().expect("summary tests").requests,
+                "ok"
+            );
         }
         _ => panic!("expected summary response"),
     }
@@ -254,10 +451,16 @@ fn test_requests_and_configs_responses() -> Result<(), Box<dyn std::error::Error
     let response: SrsClientResp = serde_json::from_str(include_str!("fixtures/srs-requests.json"))?;
     match response.data {
         SrsClientRespData::Summary(summary) => {
-            assert_eq!(summary.urls.requests, "the request itself, for http debug");
-            assert_eq!(summary.tests.requests, "show the request info");
             assert_eq!(
-                summary.tests.vhost,
+                summary.urls.as_ref().expect("requests urls").requests,
+                "the request itself, for http debug"
+            );
+            assert_eq!(
+                summary.tests.as_ref().expect("requests tests").requests,
+                "show the request info"
+            );
+            assert_eq!(
+                summary.tests.as_ref().expect("requests tests").vhost,
                 "http vhost for http://error.srs.com:1985/api/v1/tests/errors"
             );
         }
@@ -268,15 +471,116 @@ fn test_requests_and_configs_responses() -> Result<(), Box<dyn std::error::Error
     match response.data {
         SrsClientRespData::Summary(summary) => {
             assert_eq!(
-                summary.urls.raw,
+                summary.urls.as_ref().expect("configs urls").raw,
                 "raw api for srs, support CUID srs for instance the config"
             );
             assert_eq!(
-                summary.tests.redirects,
+                summary.tests.as_ref().expect("configs tests").redirects,
                 "always redirect to /api/v1/test/errors"
             );
         }
         _ => panic!("expected configs summary response"),
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_summaries_response() -> Result<(), Box<dyn std::error::Error>> {
+    let response: SrsClientResp =
+        serde_json::from_str(include_str!("fixtures/srs-summaries.json"))?;
+
+    match response.data {
+        SrsClientRespData::Summaries { data: summary } => {
+            assert_eq!(summary.ok, Some(true));
+            assert!(summary.now_ms.is_some());
+            assert!(summary.self_.is_some());
+            assert!(summary.system.is_some());
+        }
+        _ => panic!("expected runtime summaries response"),
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_clusters_response() -> Result<(), Box<dyn std::error::Error>> {
+    let response: SrsClientResp = serde_json::from_str(include_str!("fixtures/srs-clusters.json"))?;
+
+    match response.data {
+        SrsClientRespData::Clusters { data: clusters } => {
+            let query = clusters.query.expect("clusters query");
+            assert_eq!(query.ip, "");
+            assert_eq!(query.vhost, "");
+            assert_eq!(query.app, "");
+            assert_eq!(query.stream, "");
+            assert!(clusters.origin.is_none());
+        }
+        _ => panic!("expected clusters response"),
+    }
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_item_endpoints_return_none_when_not_found(
+) -> Result<(), Box<dyn std::error::Error>> {
+    async fn spawn_not_found_server() -> std::io::Result<(tokio::net::TcpListener, u16)> {
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let port = listener.local_addr()?.port();
+        Ok((listener, port))
+    }
+
+    async fn handle_once(listener: tokio::net::TcpListener) {
+        let (mut socket, _) = listener.accept().await.expect("accept request");
+        let mut buffer = [0_u8; 1024];
+        let _ = socket.read(&mut buffer).await.expect("read request");
+        socket
+            .write_all(b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 13\r\n\r\n{\"code\":2048}")
+            .await
+            .expect("write response");
+    }
+
+    // vhost
+    {
+        let (listener, port) = spawn_not_found_server().await?;
+        let server = tokio::spawn(async move {
+            handle_once(listener).await;
+        });
+
+        let client = SrsClient::build(format!("http://127.0.0.1:{port}"))?;
+        let vhost = client.get_vhost_item("missing").await?;
+        assert!(vhost.is_none());
+
+        server.await?;
+    }
+
+    // stream
+    {
+        let (listener, port) = spawn_not_found_server().await?;
+        let server = tokio::spawn(async move {
+            handle_once(listener).await;
+        });
+
+        let client = SrsClient::build(format!("http://127.0.0.1:{port}"))?;
+        let stream = client.get_stream_item("missing").await?;
+        assert!(stream.is_none());
+
+        server.await?;
+    }
+
+    // client
+    {
+        let (listener, port) = spawn_not_found_server().await?;
+        let server = tokio::spawn(async move {
+            handle_once(listener).await;
+        });
+
+        let client = SrsClient::build(format!("http://127.0.0.1:{port}"))?;
+        let item = client.get_client_item("missing").await?;
+        assert!(item.is_none());
+
+        server.await?;
     }
 
     Ok(())
