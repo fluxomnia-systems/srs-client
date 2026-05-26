@@ -84,6 +84,38 @@ Add this to your `Cargo.toml`:
 srs-client = "0.3.0"
 ```
 
+## Running tests
+
+To run integration tests against a local SRS, start it via the project test helper and run the dedicated test target:
+
+```bash
+make test-http-api
+```
+
+This command starts a local SRS container, waits for the HTTP API endpoint, runs:
+
+```bash
+cargo test --test test_http_api
+```
+
+and then shuts the container down. You can override cargo test args with `CARGO_TEST_ARGS`, for example:
+
+```bash
+make test-http-api CARGO_TEST_ARGS='--test test_http_api -- --test kickoff_client'
+```
+
+You can override ports and image used by compose:
+
+- `SRS_IMAGE` (default `ossrs/srs:v5`)
+- `SRS_HTTP_API_HOST` (default `127.0.0.1`)
+- `SRS_HTTP_API_PORT` (default `1985`)
+- `SRS_RTMP_PORT` (default `1935`)
+- `SRS_HTTP_SERVER_PORT` (default `8080`)
+
+You can also keep the container after tests with `KEEP_SRS_COMPOSE=1`, or pass a custom compose file with `SRS_COMPOSE_FILE`.
+
+Directly running `cargo test --test test_http_api` still requires `SRS_HTTP_API_URL` to be set.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.

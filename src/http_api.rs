@@ -26,6 +26,7 @@ pub use summary::{Summary, Tests, Urls};
 pub use vhost::Vhost;
 
 use reqwest::{Client as ReqwestClient, Response as ReqwestResponse};
+use serde::Deserialize;
 use url::Url;
 
 /// Client for performing requests to [HTTP API][1] of spawned [SRS].
@@ -36,6 +37,22 @@ use url::Url;
 pub struct SrsClient {
     http_client: ReqwestClient,
     base_url: Url,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SrsClientEmptyResp {
+    code: i64,
+}
+
+fn empty_success_response(code: i64) -> SrsClientResp {
+    SrsClientResp {
+        code,
+        server: String::new(),
+        service: String::new(),
+        pid: String::new(),
+        data: SrsClientRespData::Empty,
+    }
 }
 
 impl SrsClient {
@@ -95,6 +112,34 @@ impl SrsClient {
         Ok(resp)
     }
 
+    async fn process_resp_allow_empty_data(
+        &self,
+        resp: ReqwestResponse,
+    ) -> Result<SrsClientResp, SrsClientError> {
+        if !resp.status().is_success() {
+            return Err(SrsClientError::BadStatus(resp.status()));
+        }
+        tracing::debug!("processing request to: {}", resp.url());
+        let text = resp.text().await.map_err(SrsClientError::RequestFailed)?;
+        if text.trim().is_empty() {
+            return Ok(empty_success_response(0));
+        }
+
+        if let Ok(response) = serde_json::from_str::<SrsClientResp>(&text) {
+            return if matches!(response.data, SrsClientRespData::Empty) {
+                serde_json::from_str::<SrsClientEmptyResp>(&text)
+                    .map(|response| empty_success_response(response.code))
+                    .map_err(SrsClientError::JsonDeserializeError)
+            } else {
+                Ok(response)
+            };
+        }
+
+        serde_json::from_str::<SrsClientEmptyResp>(&text)
+            .map(|response| empty_success_response(response.code))
+            .map_err(SrsClientError::JsonDeserializeError)
+    }
+
     /// [Kicks off][1] a client connected to [SRS] server by its `id`.
     ///
     /// # Errors
@@ -109,7 +154,7 @@ impl SrsClient {
         id: T,
     ) -> Result<SrsClientResp, SrsClientError> {
         let resp = self.delete(&format!("clients/{}/", id.into())).await?;
-        self.process_resp(resp).await
+        self.process_resp_allow_empty_data(resp).await
     }
 
     /// Retrieves the server version.

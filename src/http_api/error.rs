@@ -24,6 +24,12 @@ pub enum SrsClientError {
     #[display(fmt = "Failed to perform deserialize request: {_0}")]
     DeserializeError(ReqwestError),
 
+    /// Performing deserialize of buffered [SRS HTTP API][1] response
+    ///
+    /// [1]: https://ossrs.io/lts/en-us/docs/v5/doc/http-callback
+    #[display(fmt = "Failed to perform deserialize request: {_0}")]
+    JsonDeserializeError(serde_json::Error),
+
     /// Failed to build [`SrsClient`] client because incorrect base Url
     ///
     /// [`SrsClient`]: crate::SrsClient

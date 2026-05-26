@@ -1,0 +1,8 @@
+services:
+  srs:
+    image: ${SRS_IMAGE:-ossrs/srs:v5}
+    command: ./objs/srs -c conf/docker.conf
+    ports:
+      - "${SRS_RTMP_PORT:-1935}:1935"
+      - "${SRS_HTTP_API_PORT:-1985}:1985"
+      - "${SRS_HTTP_SERVER_PORT:-8080}:8080"

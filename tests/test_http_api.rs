@@ -1,6 +1,10 @@
 use srs_client::{SrsClient, SrsClientError, SrsClientResp, SrsClientRespData};
 use std::env;
 use tokio;
+use tokio::{
+    io::{AsyncReadExt as _, AsyncWriteExt as _},
+    net::TcpListener,
+};
 
 // #[tokio::test]
 // async fn test_kickoff_client() -> Result<(), Box<dyn std::error::Error>> {
@@ -12,6 +16,68 @@ use tokio;
 //     assert!(result.is_ok());
 //     Ok(())
 // }
+
+#[tokio::test]
+async fn test_kickoff_client_accepts_minimal_success_response(
+) -> Result<(), Box<dyn std::error::Error>> {
+    let listener = TcpListener::bind("127.0.0.1:0").await?;
+    let addr = listener.local_addr()?;
+    let server = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.expect("accept request");
+        let mut buffer = [0_u8; 1024];
+        let read = socket.read(&mut buffer).await.expect("read request");
+        let request = String::from_utf8_lossy(&buffer[..read]);
+        assert!(request.starts_with("DELETE /api/v1/clients/client-1/ "));
+        socket
+            .write_all(
+                b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 10\r\n\r\n{\"code\":0}",
+            )
+            .await
+            .expect("write response");
+    });
+
+    let client = SrsClient::build(format!("http://{addr}"))?;
+    let response = client.kickoff_client("client-1").await?;
+    server.await?;
+
+    assert_eq!(response.code, 0);
+    assert!(matches!(response.data, SrsClientRespData::Empty));
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_kickoff_client_rejects_unexpected_minimal_response_shape(
+) -> Result<(), Box<dyn std::error::Error>> {
+    let listener = TcpListener::bind("127.0.0.1:0").await?;
+    let addr = listener.local_addr()?;
+    let server = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.expect("accept request");
+        let mut buffer = [0_u8; 1024];
+        let read = socket.read(&mut buffer).await.expect("read request");
+        let request = String::from_utf8_lossy(&buffer[..read]);
+        assert!(request.starts_with("DELETE /api/v1/clients/client-1/ "));
+        let body = r#"{"code":0,"unexpected":"value"}"#;
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
+            body.len(),
+            body
+        );
+        socket
+            .write_all(response.as_bytes())
+            .await
+            .expect("write response");
+    });
+
+    let client = SrsClient::build(format!("http://{addr}"))?;
+    let result = client.kickoff_client("client-1").await;
+    server.await?;
+
+    assert!(matches!(
+        result,
+        Err(SrsClientError::JsonDeserializeError(_))
+    ));
+    Ok(())
+}
 
 #[tokio::test]
 async fn test_get_version() -> Result<(), Box<dyn std::error::Error>> {
