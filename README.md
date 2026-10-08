@@ -1,7 +1,7 @@
 SRS Client
 ==========
 
-[![srs-client](https://img.shields.io/badge/v0.3.0-blue) v0.3.0](https://github.com/fluxomnia-systems/srs-client/tree/v0.3.0) ([changelog](https://github.com/fluxomnia-systems/srs-client/blob/main/CHANGELOG.md))
+[![srs-client](https://img.shields.io/badge/v0.4.0-blue) v0.4.0](https://github.com/fluxomnia-systems/srs-client/tree/v0.4.0) ([changelog](https://github.com/fluxomnia-systems/srs-client/blob/main/CHANGELOG.md))
 
 The [SRS (Simple RTMP Server)][1] [Rust] Client or [srs-client][2] is a [Rust] package that provides bindings for the main functionalities of the SRS server. It supports two modes of operation:
 
@@ -81,7 +81,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-srs-client = "0.3.0"
+srs-client = "0.4.0"
 ```
 
 ## Supported SRS API
@@ -148,10 +148,9 @@ Use `whep` for playback or `rtc_publish`/`rtc_play` with `RtcRequest` for SRS JS
 signaling. Query options accept server-supported candidate, codec, and stream
 parameters. Session deletion rejects URLs outside the configured SRS RTC origin.
 
-### Migration from the earlier 0.3 API
+### Migrating from 0.3 to 0.4
 
-This upgrade changes public models and error behavior and should be released as a
-new minor version before publication:
+Version 0.4.0 changes public models and error behavior:
 
 - Nonzero SRS body codes now return `SrsClientError::ApiError(code)`, including
   failed kickoff calls. Typed item getters return `None` only for that resource's

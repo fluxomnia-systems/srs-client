@@ -1,151 +1,71 @@
 # Releasing
 
-This document describes how to release a new version of `srs-client`.
-
-## Quick Start
-
-```bash
-# For a patch release (0.2.0 → 0.2.1)
-make release
-
-# For a minor release (0.2.0 → 0.3.0)
-make release.minor
-
-# For a major release (0.2.0 → 1.0.0)
-make release.major
-
-# Preview changes without executing
-make release.dry
-```
+The current release preparation is **0.4.0**. Its package version, README, and
+changelog are updated together. Publishing happens separately after those changes
+are reviewed and merged into `main`.
 
 ## Prerequisites
 
-- Ensure you have `cargo-release` and `git-cliff` installed:
-  ```bash
-  cargo install cargo-release git-cliff
-  ```
-- Clean working directory (all changes committed)
-- On the `main` branch
+- Install `cargo-release` and `git-cliff` (`cargo install cargo-release git-cliff`).
+- Use a clean `main` checkout containing the release preparation.
+- Have GitHub push access and a crates.io publishing credential configured through
+  `cargo login` or `CARGO_REGISTRY_TOKEN`.
+- Confirm the merged commit's CI passes, including the pinned SRS matrix.
 
-## Automated Release (Recommended)
+## Validate the package
 
-Using `cargo-release` which handles everything automatically:
-
-### Patch Release
 ```bash
-make release      # Same as make release.patch
-make release.patch
+cargo test --all-targets
+make cargo.fmt check=yes
+make lint
+make doc
+lat check
+cargo publish --dry-run
 ```
-- Bumps patch version (0.2.0 → 0.2.1)
-- Updates changelog
-- Updates README.md version references
-- Creates git tag
-- Pushes to GitHub
-- Publishes to crates.io
 
-### Minor Release
+The three live tests are ignored by the first command. CI runs them against SRS
+6.0.191, 7.0.162, and 8.0.48; `make test-http-api` runs one selected image locally.
+A publish dry run builds the packaged crate but does not upload it.
+
+## Publish the prepared 0.4.0 version
+
+Do not bump the version again after merging this preparation. Preview the current
+version, then execute the same release only when ready to publish:
+
 ```bash
+make release.dry version=release
+make release.current
+```
+
+`release.current` runs `cargo release release --execute`. It publishes the current
+manifest version, creates the `v0.4.0` tag, and pushes the release. Cargo-release
+asks for confirmation. The changelog hook skips dry runs and preserves an already
+prepared version section, including its breaking-change notes. Future releases
+prepend their new section without rewriting historical notes.
+
+A pushed tag runs CI; it does **not** create a GitHub Release. After publication,
+create the GitHub Release for the existing `v0.4.0` tag using its changelog notes.
+Verify the crates.io package and docs.rs build before updating consumers.
+
+## Future version bumps
+
+These commands bump, generate release metadata, publish, tag, and push. The
+preview command defaults to a patch bump and never executes the release.
+
+```bash
+make release.dry version=minor
 make release.minor
-```
-- Bumps minor version (0.2.0 → 0.3.0)
-- Same automation as patch release
-
-### Major Release
-```bash
-make release.major
-```
-- Bumps major version (0.2.0 → 1.0.0)
-- Same automation as patch release
-
-### Dry Run
-```bash
-make release.dry
-```
-- Preview all changes without executing
-- Safe way to verify what will happen
-
-## Manual Release
-
-If you prefer more control over the process:
-
-### Complete Manual Release
-```bash
-make release.manual
-```
-This will guide you through:
-1. Checking for uncommitted changes
-2. Prompting for new version number
-3. Updating changelog with `git-cliff`
-4. Committing changes
-5. Creating git tag
-6. Pushing to GitHub with tags
-7. Reminder to publish to crates.io
-
-### Step-by-Step Manual Release
-```bash
-# 1. Check working directory is clean
-make release.check-changes
-
-# 2. Update version (will prompt)
-make release.update-version
-
-# 3. Update changelog
-make release.update-changelog
-
-# 4. Commit changes
-make release.commit
-
-# 5. Create tag
-make release.tag
-
-# 6. Push to GitHub
-make release.push
-
-# 7. Publish to crates.io
-make publish
+# Or: make release.patch / make release.major
 ```
 
-## Post-Release
+The Makefile uses cargo-release's positional levels and explicit `--execute`.
+The hook honors its [documented `DRY_RUN` flag](https://github.com/crate-ci/cargo-release/blob/main/docs/reference.md#pre-release-hook), since hooks also run during previews.
+README replacements update only crate badge/tag references and the dependency
+line. They must preserve the separately pinned SRS server versions.
 
-After release:
-- The CI/CD pipeline automatically runs tests on the tagged version
-- Documentation is built and validated
-- The release appears on GitHub releases and crates.io
+## Recovering an interrupted release
 
-## Configuration
-
-Release settings are configured in `Cargo.toml`:
-- Version format and update rules
-- Changelog generation with `git-cliff`
-- README.md version updates
-- Allowed release branch (`main`)
-
-## Troubleshooting
-
-### Release fails halfway
-- Check the error message
-- Fix the issue
-- Run `make release.dry` to verify
-- Try the release again
-
-### Need to redo a release
-```bash
-# Delete the failed tag
-git tag -d v0.2.1
-git push origin :refs/tags/v0.2.1
-
-# Start over
-make release
-```
-
-### Working directory not clean
-```bash
-# Commit or stash changes
-git add .
-git commit -m "WIP"
-
-# Or stash
-git stash
-```
-
-Remember to always run `make release.dry` first if you're unsure about the changes!
+Inspect crates.io, the remote tag, and local changes before retrying. Published
+crate versions are immutable; do not delete a published release tag or attempt to
+overwrite the version. Use cargo-release's individual steps (`publish`, `tag`, or
+`push`) only for the operations that have not completed.

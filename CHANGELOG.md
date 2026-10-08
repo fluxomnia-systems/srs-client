@@ -1,7 +1,19 @@
-# Unreleased API compatibility upgrade
+SRS Client changelog
+===========================
 
-Targets SRS 6.0.191, 7.0.162, and 8.0.48. This is a breaking model/error update;
-release as the next minor version rather than a 0.3 patch.
+All notable changes to this project will be documented in this file.
+
+## [0.4.0] · 2026-10-09
+[0.4.0]: /../../tree/v0.4.0
+
+[Diff](/../../compare/v0.3.0...v0.4.0)
+
+### Breaking API update
+
+Targets SRS 6.0.191, 7.0.162, and 8.0.48. Consumers must update exhaustive
+response/callback matches and callback struct literals. Nonzero SRS body codes
+now return errors; deprecated fallback helpers report unsupported endpoints.
+See the README migration guide for replacements.
 
 - Validate SRS body codes and endpoint response shapes; fix request/config routes.
 - Add RAW/reload, authors, metrics, cluster queries, and optional diagnostics.
@@ -9,11 +21,6 @@ release as the next minor version rather than a 0.3 patch.
 - Complete callback events and metadata, preserving unknown payload fields.
 - Reuse clients and support configured reqwest transports.
 - Replace fallback-based tests with contract tests and a pinned live SRS matrix.
-
-SRS Client changelog
-===========================
-
-All notable changes to this project will be documented in this file.
 
 ## [0.3.0] · 2026-05-17
 [0.3.0]: /../../tree/v0.3.0

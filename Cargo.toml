@@ -1,6 +1,6 @@
 [package]
 name = "srs-client"
-version = "0.3.0"
+version = "0.4.0"
 description = "Provides bindings for the main functionalities of the SRS"
 authors = ["Serhii Khalymon <serhii.khalymon@pm.me>"]
 edition = "2021"
@@ -13,10 +13,10 @@ categories = ["web-programming::http-client"]
 
 [package.metadata.release]
 allow-branch = ["main"]
-pre-release-hook = ["git-cliff", "-o", "CHANGELOG.md", "--tag", "{{version}}"]
+pre-release-hook = ["sh", "scripts/prepare-changelog.sh", "{{version}}"]
 pre-release-replacements = [
-    {file="README.md", search="v[0-9]+\\.[0-9]+\\.[0-9]+", replace="v{{version}}"},
-    {file="README.md", search="[0-9]+\\.[0-9]+\\.[0-9]+", replace="{{version}}"},
+    {file="README.md", search='(https://img\.shields\.io/badge/v|blue\) v|/srs-client/tree/v)[0-9]+\.[0-9]+\.[0-9]+', replace='${1}{{version}}'},
+    {file="README.md", search='(?m)^srs-client = "[0-9]+\.[0-9]+\.[0-9]+"$', replace='srs-client = "{{version}}"'},
 ]
 
 [dependencies]

@@ -43,19 +43,22 @@ release: release.patch
 
 release.patch:
 	@echo "Creating patch release..."
-	cargo release patch
+	cargo release patch --execute
 
 release.minor:
 	@echo "Creating minor release..."
-	cargo release --minor
+	cargo release minor --execute
 
 release.major:
 	@echo "Creating major release..."
-	cargo release --major
+	cargo release major --execute
 
 release.dry:
 	@echo "Dry run release (no changes will be made)..."
-	cargo release --dry-run
+	cargo release $(or $(version),patch)
+
+release.current:
+	cargo release release --execute
 
 release.manual: release.check-changes release.update-version release.update-changelog release.commit release.tag release.push
 
@@ -71,7 +74,7 @@ release.update-version:
 
 release.update-changelog:
 	@echo "Updating changelog..."
-	git-cliff -o CHANGELOG.md --tag $$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+	sh scripts/prepare-changelog.sh $$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
 
 release.commit:
 	@echo "Committing release changes..."
@@ -137,7 +140,7 @@ cargo.test:
 ##################
 
 .PHONY: fmt lint test publish release\
-        release.patch release.minor release.major release.dry release.manual\
+        release.patch release.minor release.major release.current release.dry release.manual\
         release.check-changes release.update-version release.update-changelog\
         release.commit release.tag release.push\
         cargo.fmt cargo.lint cargo.test test-http-api
