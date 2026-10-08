@@ -10,10 +10,16 @@ The hook in `scripts/prepare-changelog.sh` skips dry runs, preserves an already 
 
 ## Publication
 
-After release preparation merges into a clean main checkout, `make release.dry version=release` previews the existing version and `make release.current` publishes it without another bump. RELEASE.md documents prerequisites and recovery.
+Stable version tags trigger `.github/workflows/publish.yml`. Manual dispatch from main handles existing tags such as v0.4.0. Both paths require matching package metadata and a tag commit contained in main.
 
-Cargo-release uses explicit execution and positional bump levels. Changelog tags use the same `v` prefix as Git tags. README replacements target crate-version locations only. Tag CI validates the release; a GitHub Release is created separately.
+The resolver emits one immutable commit SHA for all jobs. Package checks and the three-version SRS live matrix gate publication. Only the final `crates-io` environment job receives OIDC permission and exchanges it for a temporary registry token.
+
+Crates.io must trust owner `fluxomnia-systems`, repository `srs-client`, workflow `publish.yml`, and environment `crates-io`. No long-lived registry secret is stored in GitHub. Actions are pinned to verified revisions.
+
+Cargo-release has `publish = false`; its commands prepare and push tags while GitHub Actions owns registry publication. This avoids a local publish racing the tag workflow. Runs serialize per tag; a GitHub Release remains separate.
 
 ## Verification
 
-Package verification builds the archive with `cargo publish --dry-run`; contract tests, strict Clippy, nightly formatting, rustdoc, and lat validation check the prepared sources. Live API tests run in the existing pinned SRS CI matrix.
+Package verification builds the archive with `cargo publish --dry-run`; contract tests, strict Clippy, nightly formatting, rustdoc, and lat validation check the prepared sources.
+
+Live API tests run in both the existing CI matrix and the publish workflow. Actionlint validates workflow syntax; local resolver checks cover missing tags, mismatched versions, and tags outside main.
