@@ -1,95 +1,4 @@
-use srs_client::{SrsClient, SrsClientError, SrsClientResp, SrsClientRespData};
-use std::env;
-use tokio;
-
-// #[tokio::test]
-// async fn test_kickoff_client() -> Result<(), Box<dyn std::error::Error>> {
-//     let srs_http_api_url =
-//         env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
-//     let client = SrsClient::build(&srs_http_api_url)?;
-//     let result: Result<SrsClientResp, SrsClientError> =
-//         client.kickoff_client("21233").await;
-//     assert!(result.is_ok());
-//     Ok(())
-// }
-
-#[tokio::test]
-async fn test_get_version() -> Result<(), Box<dyn std::error::Error>> {
-    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
-    let client = SrsClient::build(&srs_http_api_url)?;
-    let result: Result<SrsClientResp, SrsClientError> = client.get_version().await;
-    assert!(result.is_ok());
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_get_vhosts() -> Result<(), Box<dyn std::error::Error>> {
-    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
-    let client = SrsClient::build(&srs_http_api_url)?;
-    let result: Result<SrsClientResp, SrsClientError> = client.get_vhosts().await;
-    assert!(result.is_ok());
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_get_streams() -> Result<(), Box<dyn std::error::Error>> {
-    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
-    let client = SrsClient::build(&srs_http_api_url)?;
-    let result: Result<SrsClientResp, SrsClientError> = client.get_streams().await;
-    assert!(result.is_ok());
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_get_clients() -> Result<(), Box<dyn std::error::Error>> {
-    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
-    let client = SrsClient::build(&srs_http_api_url)?;
-    let result: Result<SrsClientResp, SrsClientError> = client.get_clients().await;
-    assert!(result.is_ok());
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_get_features() -> Result<(), Box<dyn std::error::Error>> {
-    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
-    let client = SrsClient::build(&srs_http_api_url)?;
-    let result: Result<SrsClientResp, SrsClientError> = client.get_features().await;
-    assert!(result.is_ok());
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_get_rusages() -> Result<(), Box<dyn std::error::Error>> {
-    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
-    let client = SrsClient::build(&srs_http_api_url)?;
-    let result: Result<SrsClientResp, SrsClientError> = client.get_rusages().await;
-    assert!(result.is_ok());
-    Ok(())
-}
-#[tokio::test]
-async fn test_get_self_proc_stats() -> Result<(), Box<dyn std::error::Error>> {
-    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
-    let client = SrsClient::build(&srs_http_api_url)?;
-    let result: Result<SrsClientResp, SrsClientError> = client.get_self_proc_stats().await;
-    assert!(result.is_ok());
-    Ok(())
-}
-#[tokio::test]
-async fn test_get_system_proc_stats() -> Result<(), Box<dyn std::error::Error>> {
-    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
-    let client = SrsClient::build(&srs_http_api_url)?;
-    let result: Result<SrsClientResp, SrsClientError> = client.get_system_proc_stats().await;
-    assert!(result.is_ok());
-    Ok(())
-}
-#[tokio::test]
-async fn test_get_meminfos() -> Result<(), Box<dyn std::error::Error>> {
-    let srs_http_api_url = env::var("SRS_HTTP_API_URL").expect("SRS_HTTP_API_URL not set");
-    let client = SrsClient::build(&srs_http_api_url)?;
-    let result: Result<SrsClientResp, SrsClientError> = client.get_meminfos().await;
-    assert!(result.is_ok());
-    Ok(())
-}
+use srs_client::{SrsClientResp, SrsClientRespData};
 
 #[test]
 fn test_active_stream_response_with_media_metadata() -> Result<(), Box<dyn std::error::Error>> {
@@ -172,10 +81,13 @@ fn test_summary_response() -> Result<(), Box<dyn std::error::Error>> {
     match response.data {
         SrsClientRespData::Summary(summary) => {
             assert_eq!(
-                summary.urls.streams,
+                summary.urls.as_ref().expect("summary urls").streams,
                 "manage all streams or specified stream"
             );
-            assert_eq!(summary.tests.requests, "ok");
+            assert_eq!(
+                summary.tests.as_ref().expect("summary tests").requests,
+                "ok"
+            );
         }
         _ => panic!("expected summary response"),
     }
@@ -184,33 +96,37 @@ fn test_summary_response() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn test_requests_and_configs_responses() -> Result<(), Box<dyn std::error::Error>> {
-    let response: SrsClientResp = serde_json::from_str(include_str!("fixtures/srs-requests.json"))?;
+fn test_summaries_response() -> Result<(), Box<dyn std::error::Error>> {
+    let response: SrsClientResp =
+        serde_json::from_str(include_str!("fixtures/srs-summaries.json"))?;
+
     match response.data {
-        SrsClientRespData::Summary(summary) => {
-            assert_eq!(summary.urls.requests, "the request itself, for http debug");
-            assert_eq!(summary.tests.requests, "show the request info");
-            assert_eq!(
-                summary.tests.vhost,
-                "http vhost for http://error.srs.com:1985/api/v1/tests/errors"
-            );
+        SrsClientRespData::Summaries { data: summary } => {
+            assert_eq!(summary.ok, Some(true));
+            assert!(summary.now_ms.is_some());
+            assert!(summary.self_.is_some());
+            assert!(summary.system.is_some());
         }
-        _ => panic!("expected requests summary response"),
+        _ => panic!("expected runtime summaries response"),
     }
 
-    let response: SrsClientResp = serde_json::from_str(include_str!("fixtures/srs-configs.json"))?;
+    Ok(())
+}
+
+#[test]
+fn test_clusters_response() -> Result<(), Box<dyn std::error::Error>> {
+    let response: SrsClientResp = serde_json::from_str(include_str!("fixtures/srs-clusters.json"))?;
+
     match response.data {
-        SrsClientRespData::Summary(summary) => {
-            assert_eq!(
-                summary.urls.raw,
-                "raw api for srs, support CUID srs for instance the config"
-            );
-            assert_eq!(
-                summary.tests.redirects,
-                "always redirect to /api/v1/test/errors"
-            );
+        SrsClientRespData::Clusters { data: clusters } => {
+            let query = clusters.query.expect("clusters query");
+            assert_eq!(query.ip, "");
+            assert_eq!(query.vhost, "");
+            assert_eq!(query.app, "");
+            assert_eq!(query.stream, "");
+            assert!(clusters.origin.is_none());
         }
-        _ => panic!("expected configs summary response"),
+        _ => panic!("expected clusters response"),
     }
 
     Ok(())

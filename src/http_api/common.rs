@@ -22,8 +22,8 @@ pub struct Publish {
 #[allow(clippy::struct_field_names)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Version {
-    major: i64,
-    minor: i64,
-    revision: i64,
-    version: String,
+    pub major: i64,
+    pub minor: i64,
+    pub revision: i64,
+    pub version: String,
 }

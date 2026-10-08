@@ -27,6 +27,14 @@ doc: cargo.doc
 
 test: cargo.test
 
+# Run HTTP API tests with local SRS docker-compose
+#
+# Usage:
+#	make test-http-api [CARGO_TEST_ARGS="..."]
+
+test-http-api:
+	./scripts/test-http-api.sh $(CARGO_TEST_ARGS)
+
 #############
 # Release #
 #############
@@ -132,4 +140,4 @@ cargo.test:
         release.patch release.minor release.major release.dry release.manual\
         release.check-changes release.update-version release.update-changelog\
         release.commit release.tag release.push\
-        cargo.fmt cargo.lint cargo.test
+        cargo.fmt cargo.lint cargo.test test-http-api

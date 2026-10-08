@@ -1,3 +1,15 @@
+# Unreleased API compatibility upgrade
+
+Targets SRS 6.0.191, 7.0.162, and 8.0.48. This is a breaking model/error update;
+release as the next minor version rather than a 0.3 patch.
+
+- Validate SRS body codes and endpoint response shapes; fix request/config routes.
+- Add RAW/reload, authors, metrics, cluster queries, and optional diagnostics.
+- Add JSON RTC and WHIP/WHEP signaling with session deletion.
+- Complete callback events and metadata, preserving unknown payload fields.
+- Reuse clients and support configured reqwest transports.
+- Replace fallback-based tests with contract tests and a pinned live SRS matrix.
+
 SRS Client changelog
 ===========================
 

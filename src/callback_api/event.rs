@@ -1,7 +1,7 @@
 //! [HTTP Callback API][1] of [SRS] exposed by application.
 //!
 //! [SRS]: https://ossrs.io/
-//! [1]: https://ossrs.io/lts/en-us/docs/v5/doc/http-callback
+//! [1]: https://ossrs.io/lts/en-us/docs/v6/doc/http-callback
 
 use derive_more::Display;
 use serde::{Deserialize, Serialize};
@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 /// onto.
 ///
 /// [SRS]: https://ossrs.io/
-/// [1]: https://ossrs.io/lts/en-us/docs/v5/doc/http-callback
+/// [1]: https://ossrs.io/lts/en-us/docs/v6/doc/http-callback
 #[allow(clippy::enum_variant_names, clippy::module_name_repetitions)]
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, Display)]
 #[serde(rename_all = "snake_case")]
@@ -19,6 +19,12 @@ pub enum SrsCallbackEvent {
     ///
     /// [SRS]: https://ossrs.io/
     OnConnect,
+
+    /// A client disconnected; traffic counters are included in the payload.
+    OnClose,
+
+    /// The forwarding backend requests destination URLs.
+    OnForward,
 
     /// [SRS] client publishes a new stream.
     ///

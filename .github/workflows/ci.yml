@@ -71,30 +71,19 @@ jobs:
   ########
 
   test:
-    if: ${{ github.ref == 'refs/heads/master'
-            || startsWith(github.ref, 'refs/tags/')
-            || !contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        srs: ["6.0.191", "7.0.162", "8.0.48"]
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-        if: ${{ !contains(github.event.head_commit.message, '[fresh ci]') }}
-
-      - name: Install cargo-nextest
-        uses: taiki-e/install-action@nextest
-
-      - name: Start Docker container
-        run: |
-          docker run -d -p 1935:1935 -p 1985:1985 -p 8080:8080 ossrs/srs:v5 ./objs/srs -c conf/docker.conf
-          # Wait for the container to be ready
-          sleep 10
-
-      - name: Run tests
+      - name: Install media test dependency
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Run contract and live API tests
         env:
-          SRS_HTTP_API_URL: http://localhost:1985
-        run: make test
+          SRS_IMAGE: ossrs/srs:${{ matrix.srs }}
+          SRS_EXPECTED_VERSION: ${{ matrix.srs }}
+        run: ./scripts/test-http-api.sh

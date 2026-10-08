@@ -7,9 +7,13 @@ mod callback_api;
 mod http_api;
 
 pub use crate::{
-    callback_api::{SrsCallbackEvent, SrsCallbackReq},
+    callback_api::{
+        SrsCallbackEvent, SrsCallbackReq, SrsCallbackResponse, SrsForwardData, SrsForwardResponse,
+    },
     http_api::{
-        Audio, Client, Hls, Kbps, Publish, SrsClient, SrsClientError, SrsClientResp,
-        SrsClientRespData, Stream, Summary, Tests, Urls, Vhost, Video,
+        Audio, Authors, Client, ClusterQuery, Clusters, Hls, Kbps, Publish, RawConfig,
+        ReloadStatus, RequestInfo, RtcRequest, RtcResponse, SdpSession, SignalResponse, SrsClient,
+        SrsClientError, SrsClientResp, SrsClientRespData, SrsSignal, Stream, Summary, Tcmalloc,
+        Tests, Urls, ValgrindCheck, ValgrindResponse, Version, Vhost, Video,
     },
 };
