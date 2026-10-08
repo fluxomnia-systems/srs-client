@@ -25,6 +25,7 @@ fi
 SRS_HTTP_API_HOST="${SRS_HTTP_API_HOST:-127.0.0.1}"
 SRS_HTTP_API_PORT="${SRS_HTTP_API_PORT:-1985}"
 export SRS_HTTP_API_URL="http://${SRS_HTTP_API_HOST}:${SRS_HTTP_API_PORT}"
+export SRS_RTMP_URL="rtmp://${SRS_HTTP_API_HOST}:${SRS_RTMP_PORT:-1935}/live"
 
 if ! command -v curl >/dev/null 2>&1; then
   echo "Error: curl is required to wait for SRS readiness" >&2
@@ -74,7 +75,7 @@ for ((i = 1; i <= STARTUP_TIMEOUT_SECONDS; i++)); do
 done
 
 if [[ "$#" -eq 0 ]]; then
-  set -- --test test_http_api
+  set -- --all-targets -- --include-ignored --test-threads=1
 fi
 
 cargo test "$@"

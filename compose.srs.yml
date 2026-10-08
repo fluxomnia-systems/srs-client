@@ -1,7 +1,11 @@
 services:
   srs:
-    image: ${SRS_IMAGE:-ossrs/srs:v5}
+    image: ${SRS_IMAGE:-ossrs/srs:6.0.191}
     command: ./objs/srs -c conf/docker.conf
+    environment:
+      SRS_EXPORTER_ENABLED: "on"
+      SRS_HTTP_API_RAW_API_ENABLED: "on"
+      SRS_HTTP_API_RAW_API_ALLOW_RELOAD: "on"
     ports:
       - "${SRS_RTMP_PORT:-1935}:1935"
       - "${SRS_HTTP_API_PORT:-1985}:1985"

@@ -1,29 +1,34 @@
-//! [HTTP Callback] definitions of [SRS].
+//! [HTTP Callback][1] definitions of [SRS].
 //!
 //! [SRS]: https://ossrs.io/
-//! [1]: https://ossrs.io/lts/en-us/docs/v5/doc/http-callback
+//! [1]: https://ossrs.io/lts/en-us/docs/v6/doc/http-callback
 //!
 //! To work with callbacks you have to define callback which is receiving
-//! [`srs_client::SrsCallbackReq`] struct.
+//! [`SrsCallbackReq`] struct.
 //!
-//! # Example for actix-web:
-//! ```rust
-//! use actix_web::{post, web};
-//! use srs_client::{SrsCallbackEvent, SrsCallbackReq};
-//!
-//! #[post("srs_callback")]
-//! pub async fn on_callback(req: web::Json<SrsCallbackReq>) -> Result<&'static str, String> {
-//!     match req.action {
-//!         SrsCallbackEvent::OnConnect => {
-//!             dbg!(&req)
-//!         }
-//!         _ => Ok(()),
-//!     }
-//!     .map(|()| "0")
-//! }
-//! ```
+//! Return `0` or a JSON object containing `code: 0` to accept an ordinary hook.
+//! Forward-backend hooks require [`SrsForwardResponse`]. `on_hls_notify` is an
+//! HTTP GET notification, not a JSON callback payload.
 #![allow(unused_imports)]
 mod event;
 mod request;
 
 pub use self::{event::SrsCallbackEvent, request::SrsCallbackReq};
+
+/// JSON acknowledgement for an ordinary SRS callback.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct SrsCallbackResponse {
+    pub code: i64,
+}
+
+/// Response to an `on_forward` backend callback.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct SrsForwardResponse {
+    pub code: i64,
+    pub data: SrsForwardData,
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct SrsForwardData {
+    pub urls: Vec<String>,
+}
